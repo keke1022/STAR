@@ -1,0 +1,12 @@
+{
+  "star": "/path/to/STAR",
+  "genome_dir": "/path/to/index",
+  "reads": ["/path/to/R1.fastq", "/path/to/R2.fastq"],
+  "workload_id": "replace-with-accession-and-subset-definition",
+  "source_revision": "replace-with-full-upstream-commit",
+  "build_flags": "record-the-actual-complete-build-flags",
+  "input_provenance": "replace-with-public-accessions-reference-and-read-selection",
+  "input_kind": "real-rnaseq",
+  "gzip_reads": false,
+  "star_args": []
+}

@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+runs/
+inputs/
+vendor/
+local.*.json
+*.fastq*
+*.fq*
+*.fasta*
+*.fa
+*.bam
+*.sam
+*.tar*
+env-*/
+local-*/
+*.perf.data
