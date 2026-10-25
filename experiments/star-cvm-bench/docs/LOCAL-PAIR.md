@@ -1,8 +1,10 @@
 # Local ordinary-VM / SNP-VM pilot
 
 Selected on 2026-10-25. This replaces the GCP pair for the first experiment;
-cloud login, project and budget are not prerequisites. The guests have not yet
-been measured. This is an exploratory experiment on a shared physical host.
+cloud login, project and budget are not prerequisites. The first ordinary-VM
+window was interrupted; no VM/SNP comparison is available. See
+[the interrupted pilot record](LOCAL-INTERRUPTED-20261025.md).
+This is an exploratory experiment on a shared physical host.
 
 ## Preparation and evidence
 
@@ -14,6 +16,13 @@ been measured. This is an exploratory experiment on a shared physical host.
   Use independent writable disks derived from the same immutable image, with
   equal format, size, backing layout, cache mode and virtual storage interface.
   Never attach the same writable disk to both guests.
+- For strict NUMA binding, check the **target node**, not just host-wide
+  MemAvailable. The current conservative launch rule requires target-node
+  MemFree >= guest RAM + 4 GiB. Also inspect conflicting QEMU thread affinities,
+  including emulator threads and SMT siblings. Passing this snapshot check does
+  not reserve resources or establish an interference-free window. Recheck before
+  every boot and monitor pressure and competing allocations during measurement.
+  Do not use an override to bypass a failed capacity check.
 - Preserve existing workloads, devices, networks, storage pools and global
   host settings. Do not reclaim another VM's RAM for this experiment. If the
   selected guest size does not fit, reduce both sizes equally or stop launch.
@@ -64,6 +73,13 @@ timing ratio. For an interpretable comparison, reverse the order in another
 window (VM, SNP, SNP, VM overall), keeping the declared warm-up policy. Preserve
 all raw samples and window identities; runs within a single boot are not
 independent host allocations. More replications may be needed if noise is high.
+
+An interrupted window stays archived under its original identifier. Resume with
+a new identifier for both local and guest output directories; never merge old
+and new repetitions. Reuse inputs only after checking their fingerprints, and
+avoid recursively copying a directory into an already populated directory of
+the same name. Confirm libvirt reports the previous guest stopped and its QEMU
+process has exited; a shutdown request or timeout alone is not confirmation.
 
 Copy each whole result directory to the review machine. Compare like thread
 counts, keeping the raw STAR files available for recomputation:

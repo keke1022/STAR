@@ -1,0 +1,45 @@
+{
+  "status": "ABORTED_CONTAMINATED",
+  "scope": "single ordinary VM output repeatability only; no VM/SNP comparison",
+  "runner_commit": "f634f8c76a107074037137166c543429cf203c3a",
+  "threads": 1,
+  "timed_repetitions": 5,
+  "warmups": 1,
+  "samples_seconds": [
+    28.842401471000016,
+    28.692245173999993,
+    14.086530017000001,
+    28.744160782000023,
+    14.63315810200001
+  ],
+  "recomputed_outputs_equal": true,
+  "sam_records": 220318,
+  "junction_rows": 10290,
+  "snp_timed_runs": 0,
+  "four_thread_artifacts": "not retrieved; partial results remain on guest disk",
+  "evidence_sha256": {
+    "vm-window1/vm-window1-1t/manifest.json": "e967d0b6d57350e4ca8ffe8def282ddebbb924c0a2de9dbc599dd074d3fce005",
+    "vm-window1/vm-window1-1t/runs.json": "3df53cefd837d332e61a1613d125463731f9cfe9d612474e85cc40f13e8ebc17",
+    "vm-window1/vm-window1-1t/summary.json": "92d7a1c59068a1ec29907dc7457b56e7157ee05f2c28ed13ad925586030533b1",
+    "vm-window1/host.jsonl": "5c929aba79addf866160dd8c9d0bb0474d103d3c416b4dd28ddbbf9b7f14f1da"
+  },
+  "host_observation": {
+    "count": 376,
+    "start_utc": "2026-10-25T20:02:47.317692+00:00",
+    "end_utc": "2026-10-25T20:09:03.015769+00:00",
+    "MemAvailable_KiB_first_last": [
+      442465992,
+      165279516
+    ],
+    "Unevictable_KiB_first_last": [
+      118434172,
+      391695912
+    ],
+    "system_swap_page_deltas": {
+      "pswpin": 483,
+      "pswpout": 0
+    },
+    "interpretation": "system-wide counters across whole window, not per-STAR attribution or proof of timing cause"
+  },
+  "exclusion": "Do not include this interrupted, contaminated window in a VM/SNP performance comparison."
+}
