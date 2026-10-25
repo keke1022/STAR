@@ -4,6 +4,11 @@ This experiment measures STAR on matched ordinary and confidential VMs, then
 tests optimizations without changing alignment results. This directory is an
 experiment harness, not a modified STAR aligner. No VM/CVM speedup is established yet.
 
+The first VM/CVM experiment now uses a **local sequential VM/SNP pair** with the
+prepared Drosophila input. See [the local runbook](docs/LOCAL-PAIR.md) for guest
+evidence, host observations, exact run commands and batch comparison. Cloud
+configuration below remains an optional later plan.
+
 ## Run a local alignment smoke test
 
 Requires Linux, Python 3, GNU `time`, `sort`, and an independently built STAR binary

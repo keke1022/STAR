@@ -15,7 +15,7 @@ Start with paired-end bulk RNA-seq. Single-cell, long-read and two-pass modes ar
 different workloads, not pooled samples. Pin a release, commit, compiler, flags,
 binary SHA-256, input/reference/annotation hashes, index parameters and RNG seed.
 An index built for one configuration must not silently substitute for another.
-Build the canonical cloud binary on the pinned guest image, record its dynamic
+Build the canonical guest binary on the pinned guest image, record its dynamic
 library versions, and copy that binary to both guests. A development-host binary
 may depend on a newer libc/libstdc++ and is not automatically portable.
 
@@ -48,8 +48,10 @@ user-supplied `snp` label does not prove a confidential guest.
 
 The two cloud instances need not share a physical host. Alternate measurements
 and, for a publication, repeat allocations to assess host-placement variance.
-The shared development server is only a smoke-test site; do not modify existing
-VMs, global caches, kernel settings or NUMA placement of unrelated workloads.
+The shared development server also hosts the approved local exploratory VM/SNP
+pair (see LOCAL-PAIR.md). Native-host runs remain smoke tests. Record interference
+from unrelated workloads; do not modify existing VMs, global caches, kernel
+settings or NUMA placement of unrelated workloads.
 
 ## Measurement matrix
 

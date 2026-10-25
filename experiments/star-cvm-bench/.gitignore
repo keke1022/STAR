@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+local.*
 runs/
 inputs/
 vendor/

@@ -1,6 +1,8 @@
 # STAR VM vs CVM: environment, fair comparison and sampling plan
 
-Status: draft, 2026-10-25. Nothing has been created or changed; every command below is a draft.
+Status: 2026-10-25. Option B was selected for the first experiment. Guest launch
+and activation checks are in progress; no VM/CVM performance result exists yet.
+See LOCAL-PAIR.md for the current runbook. Option A remains an unexecuted draft.
 Resource names use the `bio-star-` prefix. STAR build and data provenance are recorded separately in this experiment directory.
 
 ## 1. Development-host limits
@@ -72,7 +74,8 @@ A local SNP-capable host can support a sequential ordinary/SNP guest pair for
 small-genome experiments. Capacity and placement must be checked immediately
 before launch; reserve memory for other workloads. It must not disturb the existing VMs. Whether the KVM
 vPMU works inside an SNP guest on this kernel is not established and would have to be tried.
-Needs explicit authorization to define and start guests on this machine.
+Local guest execution was authorized on 2026-10-25. Start at most one experiment
+guest at a time, with a proposed cap of 12 GiB subject to live available capacity.
 The prepared Drosophila index build reached about 5.28 GiB peak RSS in the worker's
 actual run, above the earlier 2–4 GiB estimate; alignment used less memory. Check
 current host capacity and guest overhead rather than sizing from the old estimate.
@@ -103,11 +106,12 @@ current host capacity and guest overhead rather than sizing from the old estimat
 | H4 | NUMA and vCPU topology differ | `lscpu`/`numactl` in both guests; pinned vs unpinned runs |
 | H0 | No measurable difference beyond noise | the repetitions' spread |
 
-## 5. What I need to proceed
+## 5. Remaining preparation
 
-- A choice of option A, B or both, and authorization for the resources (project, zone, budget,
-  maximum hours, and that I may create and delete the two `bio-star-*` instances). For option B,
-  authorization to define and start local guests, with a memory cap.
+- For the selected local option B, establish actual launch permissions, a matched
+  bootable pair and SNP activation evidence. GCP login/project/budget do not block it.
+- If option A is later selected, confirm project, zone, budget and lifetime for
+  creating and deleting its exact pair before provisioning cloud resources.
 - The pinned STAR build (with a frame-pointer variant) and the dataset sizes, to
   settle disk and memory per VM.
 
@@ -124,5 +128,5 @@ provisioning because availability and prices can change:
 - [Compute Engine PMU](https://docs.cloud.google.com/compute/docs/pmu-overview)
 - [Instance create CLI](https://docs.cloud.google.com/sdk/gcloud/reference/compute/instances/create)
 
-The initial allocation, image compatibility and cost ceiling are still undecided.
+For the optional cloud allocation, image compatibility and cost ceiling remain undecided.
 The script defaults to printing mutations; running it is not an authorization.

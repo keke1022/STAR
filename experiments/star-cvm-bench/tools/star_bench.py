@@ -126,6 +126,11 @@ def host_observation():
     for name in ("meminfo", "pressure/cpu", "pressure/memory", "pressure/io"):
         p = Path("/proc") / name
         result[name] = p.read_text() if p.exists() else None
+    p = Path("/proc/vmstat")
+    counters = dict(line.split() for line in p.read_text().splitlines()) if p.exists() else {}
+    result["vmstat"] = {key: int(counters[key]) for key in
+                        ("pswpin", "pswpout", "pgfault", "pgmajfault") if key in counters}
+    result["observed_unix_ns"] = time.time_ns()
     return result
 
 
@@ -141,7 +146,8 @@ def run(args):
         raise ValueError("No STAR Genome index file")
     fingerprints = {key: {"sha256": sha256(p), "bytes": p.stat().st_size}
                     for key, p in files}
-    metadata = {"schema": 1, "config": c, "declared_environment": args.environment,
+    metadata = {"schema": 2, "runner_sha256": sha256(__file__),
+                "config": c, "declared_environment": args.environment,
                 "environment_verified": False, "variant": args.variant,
                 "cache_policy": "uncontrolled_after_fingerprinting",
                 "profiling": "none", "threads": args.threads,
@@ -161,6 +167,7 @@ def run(args):
         if c.get("gzip_reads", False):
             cmd += ["--readFilesCommand", "zcat"]
         write_json(d / "command.json", cmd)
+        observation_before = host_observation()
         started = time.perf_counter()
         with (d / "stdout.txt").open("w") as stdout, (d / "stderr.txt").open("w") as stderr:
             proc = subprocess.Popen(["/usr/bin/time", "-v", "-o", str(d / "time.txt"), *cmd],
@@ -173,8 +180,11 @@ def run(args):
                 proc.wait()
                 rc = 124
         elapsed = time.perf_counter() - started
+        observation_after = host_observation()
         record = {"run": str(d.relative_to(out)), "warmup": warmup,
-                  "elapsed_seconds": elapsed, "exit_code": rc}
+                  "elapsed_seconds": elapsed, "exit_code": rc,
+                  "observation_before": observation_before,
+                  "observation_after": observation_after}
         records.append(record)
         write_json(out / "runs.json", records)
         if rc:
