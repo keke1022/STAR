@@ -65,7 +65,7 @@ mkdir -p vendor inputs runs
 scripts/build_star.sh vendor 4
 scripts/fetch_inputs.sh inputs/chr21-10k 10000
 scripts/genome_generate.sh vendor/STAR-2.7.11b/source/STAR \
-  inputs/chr21-10k runs/genome-chr21 4
+  inputs/chr21-10k/chr21.fa inputs/chr21-10k/chr21.gtf runs/genome-chr21 4 11 62
 ```
 
 Fill `local.workload.json` with these paths and use the runner above. Reference
@@ -102,3 +102,17 @@ lifetime deletion compatibility still need provider validation. A successful
 preflight alone does not establish a deployable or matched pair.
 
 The first real-input integration result is in [the native smoke report](results/NATIVE-SMOKE.md).
+
+## Complete-reference Drosophila pilot
+
+```sh
+scripts/fetch_dm.sh inputs/dm-100k 100000
+scripts/genome_generate.sh vendor/STAR-2.7.11b/source/STAR \
+  inputs/dm-100k/dm.fa inputs/dm-100k/dm.gtf runs/genome-dm 4 12 100
+```
+
+Use the generated index and `DRR129224_100000_{1,2}.fastq` in a separate local
+runner configuration. The fixed sample's high mapping fraction is useful for
+validation but is not a statement about other samples or human workloads.
+
+[Complete-reference pilot results](results/DROSOPHILA-PILOT.md) include independent output checks.

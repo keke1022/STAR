@@ -5,6 +5,7 @@
 # streamed (the full run is ~2.5 GB compressed and is not downloaded).
 # Usage: fetch_inputs.sh OUTDIR [NPAIRS]   (default NPAIRS=1000000)
 set -euo pipefail
+VALIDATOR=$(cd "$(dirname "$0")/../tools" && pwd)/validate_fastq.py
 OUT=${1:?outdir}; N=${2:-1000000}
 [[ "$N" =~ ^[1-9][0-9]*$ ]] || { echo "NPAIRS must be a positive integer" >&2; exit 2; }
 mkdir "$OUT"  # refuse to overwrite previous inputs
@@ -31,24 +32,7 @@ sha256sum chr21.fa.gz chr21.fa full.chr.gtf.gz chr21.gtf SRR1039508_${N}_1.fastq
 grep 'chromosome\.21\.fa\.gz' ensembl.CHECKSUMS > ensembl.chr21.sum
 sum chr21.fa.gz > local.chr21.sum
 
-python3 - <<'CHECK_FASTQ'
-from pathlib import Path
-files = sorted(Path('.').glob('SRR1039508_*_?.fastq'))
-if len(files) != 2:
-    raise SystemExit('Expected exactly two FASTQ mates')
-with files[0].open() as a, files[1].open() as b:
-    while True:
-        ra, rb = [a.readline() for _ in range(4)], [b.readline() for _ in range(4)]
-        if not ra[0] and not rb[0]:
-            break
-        for record in (ra, rb):
-            if not record[0].startswith('@') or not record[2].startswith('+') or len(record[1].strip()) != len(record[3].strip()):
-                raise SystemExit('Malformed FASTQ record')
-        # ENA mate suffixes may be /1 and /2; names before them must agree.
-        names = [r[0].split()[0].removesuffix('/1').removesuffix('/2') for r in (ra, rb)]
-        if names[0] != names[1]:
-            raise SystemExit('Paired FASTQ names differ')
-CHECK_FASTQ
+python3 "$VALIDATOR" "SRR1039508_${N}_1.fastq" "SRR1039508_${N}_2.fastq" --pairs "$N"
 read -r a b _ < ensembl.chr21.sum
 read -r c d _ < local.chr21.sum
 test "$a $b" = "$c $d" || { echo "Ensembl FASTA checksum mismatch" >&2; exit 1; }

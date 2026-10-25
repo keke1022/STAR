@@ -73,6 +73,9 @@ small-genome experiments. Capacity and placement must be checked immediately
 before launch; reserve memory for other workloads. It must not disturb the existing VMs. Whether the KVM
 vPMU works inside an SNP guest on this kernel is not established and would have to be tried.
 Needs explicit authorization to define and start guests on this machine.
+The prepared Drosophila index build reached about 5.28 GiB peak RSS in the worker's
+actual run, above the earlier 2–4 GiB estimate; alignment used less memory. Check
+current host capacity and guest overhead rather than sizing from the old estimate.
 
 ## 3. What to sample (both sides identical)
 
