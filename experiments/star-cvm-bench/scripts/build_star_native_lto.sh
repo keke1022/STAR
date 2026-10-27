@@ -18,6 +18,11 @@ test "$(git -C "$TREE" rev-parse HEAD)" = "$COMMIT"
 test -z "$(git -C "$TREE" status --porcelain --untracked-files=no)"
 
 cd "$TREE/source"
+# Make does not track command-line flag changes in object dependencies. A reused
+# tree must therefore discard every prior object, library and executable before
+# recording a new optimized build.
+make CLEAN
+test ! -e STAR
 make -j"$J" STAR CXXFLAGSextra="-march=native -flto" LDFLAGSextra="-flto"
 {
     printf 'source_commit=%s\n' "$COMMIT"

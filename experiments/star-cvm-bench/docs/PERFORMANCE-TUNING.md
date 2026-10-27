@@ -31,6 +31,9 @@ modes as unsupported until they have their own differential tests.
 `-march=native -flto`. The binary is intentionally host-specific. Record the
 compiler, resolved native target, binary hash and complete flags, and use the
 exact same binary in the ordinary and confidential guests.
+The script deliberately runs `make CLEAN` and checks that the previous `STAR`
+executable is absent before rebuilding: GNU make does not otherwise know that
+command-line compiler flags changed in a reused source tree.
 
 This build is an experimental candidate, not a blanket equivalence claim.
 Compiler and link-time optimization can change behavior in edge cases even
@@ -49,10 +52,11 @@ recompute signatures from raw outputs.
 
 For SAM, validation follows `outSAMorder`: `Paired` requires every QNAME to be
 one contiguous group and each multimapping mate unit to remain adjacent with
-complementary first/second flags and matching `HI`; `PairedKeepInputOrder` also
-preserves QNAME-group and within-group order. `Standard` is compared as an
-unordered record multiset. The checker still establishes equality only for the
-outputs it understands; it is not a proof over every STAR mode or every input.
+complementary first/second flags, reciprocal `RNEXT`/`PNEXT` links, and matching
+`HI` when that optional tag is present; `PairedKeepInputOrder` also preserves
+QNAME-group and within-group order. `Standard` is compared as an unordered
+record multiset. The checker still establishes equality only for the outputs it
+understands; it is not a proof over every STAR mode or every input.
 
 Report these separately:
 

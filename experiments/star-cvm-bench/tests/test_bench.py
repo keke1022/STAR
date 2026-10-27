@@ -77,13 +77,30 @@ class Correctness(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             d = Path(tmp)
             def paired(flag, pos, hi):
-                return (ROW.replace("\t0\tchr1\t10\t", f"\t{flag}\tchr1\t{pos}\t")
+                mate_pos = {10: 20, 20: 10, 30: 40, 40: 30}[pos]
+                return (ROW.replace("\t0\tchr1\t10\t255\t4M\t*\t0\t0\t",
+                                    f"\t{flag}\tchr1\t{pos}\t255\t4M\t=\t{mate_pos}\t0\t")
                         + f"\tHI:i:{hi}")
             left1, right1 = paired(99, 10, 1), paired(147, 20, 1)
             left2, right2 = paired(355, 30, 2), paired(403, 40, 2)
             output(d, [left1, left2, right1, right2])
             with self.assertRaisesRegex(ValueError, "not adjacent"):
                 bench.result_signature(d)
+
+    def test_paired_mode_uses_mate_links_when_hi_is_absent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            valid, crossed = Path(tmp) / "valid", Path(tmp) / "crossed"
+            def paired(flag, pos, mate_pos):
+                return ROW.replace(
+                    "\t0\tchr1\t10\t255\t4M\t*\t0\t0\t",
+                    f"\t{flag}\tchr1\t{pos}\t255\t4M\t=\t{mate_pos}\t0\t")
+            left1, right1 = paired(99, 10, 20), paired(147, 20, 10)
+            left2, right2 = paired(355, 30, 40), paired(403, 40, 30)
+            output(valid, [left1, right1, left2, right2])
+            bench.result_signature(valid)
+            output(crossed, [left1, right2, left2, right1])
+            with self.assertRaisesRegex(ValueError, "inconsistent mate links"):
+                bench.result_signature(crossed)
 
     def test_paired_keep_input_order_preserves_group_order(self):
         with tempfile.TemporaryDirectory() as tmp:

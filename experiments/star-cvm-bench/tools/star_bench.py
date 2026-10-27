@@ -60,6 +60,9 @@ def sam_output_order(run_dir):
 
 def sam_digest(path, output_order="Paired"):
     headers = []
+    def resolved_mate_reference(row):
+        return row[2] if row[6] == "=" else row[6]
+
     def validate_adjacent_mates(rows):
         fields = [row.split("\t") for row in rows]
         flags = [int(row[1]) for row in fields]
@@ -72,6 +75,18 @@ def sam_digest(path, output_order="Paired"):
             lf, rf = flags[i], flags[i + 1]
             if bool(lf & 0x40) == bool(rf & 0x40) or bool(lf & 0x80) == bool(rf & 0x80):
                 raise ValueError("Paired SAM mate records are not adjacent")
+            # HI identifies multi-mapping pairs when present, but it is optional
+            # in SAM.  The mandatory mate-link fields must therefore agree too:
+            # each record's RNEXT/PNEXT must point back to its adjacent mate.
+            try:
+                left_pnext, right_pnext = int(left[7]), int(right[7])
+            except ValueError as exc:
+                raise ValueError("Invalid SAM mate position") from exc
+            if (resolved_mate_reference(left) != right[2]
+                    or resolved_mate_reference(right) != left[2]
+                    or left_pnext != int(right[3])
+                    or right_pnext != int(left[3])):
+                raise ValueError("Adjacent SAM records have inconsistent mate links")
             left_hi = next((tag for tag in left[11:] if tag.startswith("HI:i:")), None)
             right_hi = next((tag for tag in right[11:] if tag.startswith("HI:i:")), None)
             if left_hi != right_hi:

@@ -54,10 +54,12 @@ All 144 raw SAM outputs were re-read after the formal run. For the recorded
 default `outSAMorder=Paired`, the strict checker verifies all alignment fields,
 optional tags and multiplicity; nonvolatile SAM headers; STAR non-timing
 statistics; splice-junction output; contiguous QNAME groups; and adjacent mate
-units with complementary first/second flags and matching `HI` tags. All outputs
-matched. The checker also rejects injected split-QNAME, interleaved-multimapper,
-changed-FLAG and `PairedKeepInputOrder` ordering negatives. Twenty-eight unit
-tests pass.
+units with complementary first/second flags, reciprocal `RNEXT`/`PNEXT` links,
+and matching `HI` tags when present. All outputs matched. The checker also
+rejects injected split-QNAME, interleaved-multimapper, missing-`HI` cross-pair,
+changed-FLAG and `PairedKeepInputOrder` ordering negatives. Twenty-nine unit
+tests pass. An independent re-read of the 144 raw outputs, including an
+additional mate-position check, reached the same result.
 
 This is not a universal equivalence proof. An independent counterexample showed
 that `outMultimapperOrder=Random` can change primary alignments when chunk/thread
@@ -73,6 +75,9 @@ differential gate. The upstream binary remains the fallback.
 - Source: STAR 2.7.11b commit `b1edc1208d91a53bf40ebae8669f71d50b994851`.
 - Tuned build: GCC 15.2.0, resolved native target `znver5`,
   `CXXFLAGSextra=-march=native -flto`, `LDFLAGSextra=-flto`.
+- The tuned-build script runs `make CLEAN` and verifies the old executable is
+  gone before every build, preventing a reused tree from retaining objects
+  compiled with different flags.
 - Both SNP boots used distinct nonces. Their version-5, policy `0x30000` reports
   passed the AMD Turin ARK → ASK → VCEK → report chain, nonce matching and the
   expected measurement check.
