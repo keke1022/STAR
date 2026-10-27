@@ -52,6 +52,11 @@ differences or malformed/missing output. Equality is a strong regression check,
 not a formal equivalence proof or a biological accuracy assessment. BAM/CRAM,
 STARsolo matrices and chimeric outputs need additional validation before use.
 
+For the balanced-input-buffer and CPU-tuned build workflow, including fail-closed
+cross-build comparison, see [the performance-tuning protocol](docs/PERFORMANCE-TUNING.md).
+The current server-pro6000 evidence is summarized in
+[the hotspot and optimization result](results/SERVER-PRO6000-HOTSPOTS.md).
+
 Raw runs contain local filesystem paths. Do not commit runs, downloaded data,
 machine inventories, credentials, or agent transcripts. Commit curated result
 summaries and reproducible acquisition/build scripts instead.

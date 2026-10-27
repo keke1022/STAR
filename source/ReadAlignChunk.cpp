@@ -1,10 +1,16 @@
 #include "ReadAlignChunk.h"
 #include <pthread.h>
 #include "ErrorWarning.h"
+#include <cstdlib>
 
 ReadAlignChunk::ReadAlignChunk(Parameters& Pin, Genome &genomeIn, Transcriptome *TrIn, int iChunk) : P(Pin), mapGen(genomeIn) {//initialize chunk
 
     iThread=iChunk;
+    traceEnabled=std::getenv("STAR_PHASE_TRACE") != NULL;
+    traceChunkCount=0;
+    traceInputSeconds=0;
+    traceMapSeconds=0;
+    traceSamWriteSeconds=0;
 
     if ( P.quant.yes ) {//allocate transcriptome structures
         chunkTr=new Transcriptome(*TrIn);

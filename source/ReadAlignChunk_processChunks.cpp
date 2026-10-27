@@ -3,6 +3,7 @@
 #include "ErrorWarning.h"
 #include "SequenceFuns.h"
 #include "GlobalVariables.h"
+#include <chrono>
 
 inline uint64 fastqReadOneLine(ifstream &streamIn, char *arrIn);
 inline void removeStringEndControl(string &str);
@@ -12,6 +13,9 @@ void ReadAlignChunk::processChunks() {//read-map-write chunks
     noReadsLeft=false; //true if there no more reads left in the file
     bool newFile=false; //new file marker in the input stream
     while (!noReadsLeft) {//continue until the input EOF
+        std::chrono::steady_clock::time_point inputStart;
+        if (traceEnabled)
+            inputStart = std::chrono::steady_clock::now();
             //////////////read a chunk from input files and store in memory
         if (P.outFilterBySJoutStage<2) {//read chunks from input file
 
@@ -246,7 +250,18 @@ void ReadAlignChunk::processChunks() {//read-map-write chunks
             };
         };
 
+        if (traceEnabled) {
+            traceInputSeconds += std::chrono::duration<double>(std::chrono::steady_clock::now() - inputStart).count();
+            if (P.outFilterBySJoutStage >= 2 || chunkInSizeBytesTotal[0] != 0)
+                traceChunkCount++;
+        };
+
+        std::chrono::steady_clock::time_point mapStart;
+        if (traceEnabled)
+            mapStart = std::chrono::steady_clock::now();
         mapChunk();
+        if (traceEnabled)
+            traceMapSeconds += std::chrono::duration<double>(std::chrono::steady_clock::now() - mapStart).count();
 
         if (iThread==0 && P.runThreadN>1 && P.outSAMorder=="PairedKeepInputOrder") {//concatenate Aligned.* files
             chunkFilesCat(P.inOut->outSAM, P.outFileTmp + "/Aligned.out.sam.chunk", g_threadChunks.chunkOutN);
@@ -278,6 +293,14 @@ void ReadAlignChunk::processChunks() {//read-map-write chunks
     };
     if (P.runThreadN>1) pthread_mutex_lock(&g_threadChunks.mutexLogMain);
     P.inOut->logMain << "Completed: thread #" <<iThread <<endl;
+    if (traceEnabled) {
+        P.inOut->logMain << "STAR_THREAD_PHASE\tthread=" << iThread
+                         << "\tchunks=" << traceChunkCount
+                         << "\treads=" << RA->iRead
+                         << "\tinput_seconds=" << std::fixed << std::setprecision(9) << traceInputSeconds
+                         << "\tmap_format_write_seconds=" << traceMapSeconds
+                         << "\tsam_disk_write_seconds=" << traceSamWriteSeconds << '\n' << flush;
+    };
     if (P.runThreadN>1) pthread_mutex_unlock(&g_threadChunks.mutexLogMain);
 };
 

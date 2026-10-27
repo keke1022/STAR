@@ -93,6 +93,16 @@ class Batches(unittest.TestCase):
             write(path, changed)
             with self.assertRaises(ValueError): compare(self.vm, self.snp)
 
+    def test_explicit_non_upstream_variant_can_be_compared_across_environments(self):
+        for root in (self.vm, self.snp):
+            path = root / "manifest.json"
+            changed = json.loads(path.read_text())
+            changed["variant"] = "znver5-lto-balanced-io"
+            write(path, changed)
+        with self.assertRaises(ValueError):
+            compare(self.vm, self.snp)
+        self.assertEqual(compare(self.vm, self.snp, variant="znver5-lto-balanced-io")["status"], "PASS")
+
     def test_summary_timing_tamper_rejected(self):
         path = self.snp / "summary.json"
         changed = json.loads(path.read_text()); changed["samples_seconds"] = [0.1] * 5

@@ -3,6 +3,7 @@
 #include "ThreadControl.h"
 #include "ErrorWarning.h"
 #include SAMTOOLS_BGZF_H
+#include <chrono>
 
 void ReadAlignChunk::mapChunk() {//map one chunk. Input reads stream has to be setup in RA->readInStream[ii]
     
@@ -47,13 +48,23 @@ void ReadAlignChunk::mapChunk() {//map one chunk. Input reads stream has to be s
                 exitWithError(errOut.str(),std::cerr, P.inOut->logMain, EXIT_CODE_INPUT_FILES, P);
             } else if ( chunkOutBAMtotal + P.limitOutSAMoneReadBytes > P.chunkOutBAMsizeBytes || (readStatus==-1 && noReadsLeft) ) {//write buffer to disk because it's almost full, or all reads are mapped
                 if ( P.outSAMorder == "PairedKeepInputOrder" && P.runThreadN>1 ) {//output chunks into separate files
+                    std::chrono::steady_clock::time_point writeStart;
+                    if (traceEnabled)
+                        writeStart = std::chrono::steady_clock::now();
                     chunkOutBAMfile.write(chunkOutBAM,chunkOutBAMtotal);
+                    if (traceEnabled)
+                        traceSamWriteSeconds += std::chrono::duration<double>(std::chrono::steady_clock::now() - writeStart).count();
                     chunkOutBAMfile.clear(); //in case 0 bytes were written which could set fail bit
                     //chunkOutBAMfile.flush(); //not needed
                 } else {//standard way, directly into Aligned.out.sam file
                     //SAM output
                     if (P.runThreadN>1) pthread_mutex_lock(&g_threadChunks.mutexOutSAM);
+                    std::chrono::steady_clock::time_point writeStart;
+                    if (traceEnabled)
+                        writeStart = std::chrono::steady_clock::now();
                     P.inOut->outSAM->write(chunkOutBAM,chunkOutBAMtotal);
+                    if (traceEnabled)
+                        traceSamWriteSeconds += std::chrono::duration<double>(std::chrono::steady_clock::now() - writeStart).count();
                     P.inOut->outSAM->clear();//in case 0 bytes were written which could set fail bit
                     //P.inOut->outSAM->flush(); //not needed
                     if (P.runThreadN>1) pthread_mutex_unlock(&g_threadChunks.mutexOutSAM);
@@ -110,7 +121,12 @@ void ReadAlignChunk::mapChunk() {//map one chunk. Input reads stream has to be s
     }; //reads cycle
 
     if ( P.outSAMbool && P.outSAMorder == "PairedKeepInputOrder" && P.runThreadN>1 ) {//write the remaining part of the buffer, close and rename chunk files
+        std::chrono::steady_clock::time_point writeStart;
+        if (traceEnabled)
+            writeStart = std::chrono::steady_clock::now();
         chunkOutBAMfile.write(chunkOutBAM,chunkOutBAMtotal);
+        if (traceEnabled)
+            traceSamWriteSeconds += std::chrono::duration<double>(std::chrono::steady_clock::now() - writeStart).count();
         chunkOutBAMfile.clear(); //in case 0 bytes were written which could set fail bit
         chunkOutBAMfile.close();
         RA->outSAMstream->seekp(0,ios::beg); //rewind the chunk storage

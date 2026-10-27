@@ -1,5 +1,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <chrono>
+#include <cstdlib>
 
 #include "IncludeDefine.h"
 #include "Parameters.h"
@@ -57,6 +59,10 @@ void usage(int usageType)
 
 int main(int argInN, char *argIn[])
 {
+    typedef std::chrono::steady_clock PhaseClock;
+    const PhaseClock::time_point processStart = PhaseClock::now();
+    const bool phaseTrace = std::getenv("STAR_PHASE_TRACE") != NULL;
+
     // If no argument is given, or the first argument is either '-h' or '--help', run usage()
     if (argInN == 1)
     {
@@ -73,6 +79,17 @@ int main(int argInN, char *argIn[])
     ///////////////////////////////////////////// Parameters
     Parameters P; // all parameters
     P.inputParameters(argInN, argIn);
+
+    auto phaseFinished = [&](const char *name, const PhaseClock::time_point &begin) {
+        const PhaseClock::time_point end = PhaseClock::now();
+        if (phaseTrace) {
+            P.inOut->logMain << "STAR_PHASE\t" << name << "\tseconds="
+                             << std::fixed << std::setprecision(9)
+                             << std::chrono::duration<double>(end - begin).count() << '\n' << flush;
+        };
+        return end;
+    };
+    PhaseClock::time_point phaseCursor = phaseFinished("parameters", processStart);
 
     *(P.inOut->logStdOut) << "\t" << P.commandLine << '\n';
     *(P.inOut->logStdOut) << "\tSTAR version: " << STAR_VERSION << "   compiled: " << COMPILATION_TIME_PLACE << '\n';
@@ -134,6 +151,7 @@ int main(int argInN, char *argIn[])
     ///////////////////////////////// Genome
     Genome genomeMain(P, P.pGe);
     genomeMain.genomeLoad();
+    phaseCursor = phaseFinished("genome_load", phaseCursor);
 
     if (P.pGe.transform.outYes) {
         genomeMain.Var = new Variation(P, genomeMain.chrStart, genomeMain.chrNameIndex, false);//no variation for mapGen, only for genOut
@@ -174,6 +192,8 @@ int main(int argInN, char *argIn[])
         transcriptomeMain = new Transcriptome(P);
     };
 
+    phaseCursor = phaseFinished("pre_mapping_setup", phaseCursor);
+
     // initialize Stats
     g_statsAll.resetN();
     time(&g_statsAll.timeStartMap);
@@ -186,6 +206,7 @@ int main(int argInN, char *argIn[])
 
     // initialize chimeric parameters here - note that chimeric parameters require samHeader
     P.pCh.initialize(&P);
+    phaseCursor = phaseFinished("sam_header_and_chimeric_init", phaseCursor);
 
     // this does not seem to work at the moment
     // P.inOut->logMain << "mlock value="<<mlockall(MCL_CURRENT|MCL_FUTURE) <<"\n"<<flush;
@@ -196,9 +217,11 @@ int main(int argInN, char *argIn[])
     {
         RAchunk[ii] = new ReadAlignChunk(P, genomeMain, transcriptomeMain, ii);
     };
+    phaseCursor = phaseFinished("read_align_chunk_init", phaseCursor);
 
     if (P.runRestart.type != 1)
         mapThreadsSpawn(P, RAchunk);
+    phaseCursor = phaseFinished("map_threads", phaseCursor);
 
     if (P.outFilterBySJoutStage == 1)
     { // completed stage 1, go to stage 2
@@ -242,18 +265,22 @@ int main(int argInN, char *argIn[])
     P.inOut->logMain << timeMonthDayTime(g_statsAll.timeFinishMap) << " ..... finished mapping\n"
                      << "RAM after mapping:\n"
                      << linuxProcMemory() << flush;
+    phaseCursor = phaseFinished("mapping_closeout", phaseCursor);
 
     // no need for genome anymore, free the memory
     genomeMain.freeMemory();
+    phaseCursor = phaseFinished("genome_free", phaseCursor);
 
     // aggregate output junctions
     // collapse splice junctions from different threads/chunks, and output them
     if (P.runRestart.type != 1 && P.outSJ.yes)
         outputSJ(RAchunk, P);
+    phaseCursor = phaseFinished("junction_output", phaseCursor);
 
     // solo counts
     Solo soloMain(RAchunk, P, *RAchunk[0]->chunkTr);
     soloMain.processAndOutput();
+    phaseCursor = phaseFinished("solo_output", phaseCursor);
 
     if (P.quant.geCount.yes)
     { // output gene quantifications
@@ -270,6 +297,7 @@ int main(int argInN, char *argIn[])
     };
 
     bamSortByCoordinate(P, RAchunk, *genomeMain.genomeOut.g, soloMain);
+    phaseCursor = phaseFinished("post_mapping_outputs", phaseCursor);
 
     // wiggle output
     if (P.outWigFlags.yes)
@@ -306,6 +334,8 @@ int main(int argInN, char *argIn[])
         delete genomeMain.sharedMemory;
         genomeMain.sharedMemory = NULL;
     };
+
+    phaseFinished("finalize", phaseCursor);
 
     delete P.inOut; // to close files
 

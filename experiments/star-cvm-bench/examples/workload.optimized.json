@@ -1,0 +1,12 @@
+{
+  "star": "/path/to/STAR-native-lto",
+  "genome_dir": "/path/to/index",
+  "reads": ["/path/to/R1.fastq", "/path/to/R2.fastq"],
+  "workload_id": "replace-with-accession-and-subset-definition",
+  "source_revision": "replace-with-full-upstream-commit",
+  "build_flags": "upstream defaults plus CXXFLAGSextra=-march=native -flto LDFLAGSextra=-flto; record compiler and resolved native target",
+  "input_provenance": "replace-with-public-accessions-reference-and-read-selection",
+  "input_kind": "real-rnaseq",
+  "gzip_reads": false,
+  "star_args": ["--limitIObufferSize", "4000000", "50000000"]
+}

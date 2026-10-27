@@ -64,6 +64,38 @@ class Correctness(unittest.TestCase):
             with self.assertRaises(ValueError):
                 bench.result_signature(d)
 
+    def test_paired_mode_rejects_split_qname_groups(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            mate = ROW.replace("\t0\t", "\t128\t", 1)
+            other = ROW.replace("r1\t", "r2\t")
+            output(d, [ROW, other, mate], 2)
+            with self.assertRaisesRegex(ValueError, "not contiguous"):
+                bench.result_signature(d)
+
+    def test_paired_mode_rejects_interleaved_multimapper_mates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            def paired(flag, pos, hi):
+                return (ROW.replace("\t0\tchr1\t10\t", f"\t{flag}\tchr1\t{pos}\t")
+                        + f"\tHI:i:{hi}")
+            left1, right1 = paired(99, 10, 1), paired(147, 20, 1)
+            left2, right2 = paired(355, 30, 2), paired(403, 40, 2)
+            output(d, [left1, left2, right1, right2])
+            with self.assertRaisesRegex(ValueError, "not adjacent"):
+                bench.result_signature(d)
+
+    def test_paired_keep_input_order_preserves_group_order(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            a, b = Path(tmp) / "a", Path(tmp) / "b"
+            other = ROW.replace("r1\t", "r2\t")
+            output(a, [ROW, other], 2)
+            output(b, [other, ROW], 2)
+            command = ["STAR", "--outSAMorder", "PairedKeepInputOrder"]
+            (a / "command.json").write_text(json.dumps(command))
+            (b / "command.json").write_text(json.dumps(command))
+            self.assertNotEqual(bench.result_signature(a), bench.result_signature(b))
+
     def test_compare_process_exit(self):
         with tempfile.TemporaryDirectory() as tmp:
             a, b = Path(tmp) / "a", Path(tmp) / "b"

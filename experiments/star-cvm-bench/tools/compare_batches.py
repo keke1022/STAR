@@ -18,20 +18,24 @@ def read_json(path):
     return json.loads(Path(path).read_text())
 
 
-def inspect_batch(root, environment, minimum):
+def inspect_batch(root, environment, minimum, variant="upstream"):
     root = Path(root).resolve()
     m = read_json(root / "manifest.json")
     records = read_json(root / "runs.json")
     summary = read_json(root / "summary.json")
     if m.get("schema") != 2 or not m.get("runner_sha256"):
         raise ValueError("Batch must use runner schema 2 with its source fingerprint")
-    if m.get("declared_environment") != environment or m.get("variant") != "upstream":
-        raise ValueError("Expected distinct vm/snp upstream batches")
+    if m.get("declared_environment") != environment or m.get("variant") != variant:
+        raise ValueError(f"Expected {environment} batch with variant={variant}")
     if m.get("profiling") != "none" or summary.get("status") != "PASS":
         raise ValueError("Need completed, unprofiled batches")
     if len(records) != m["warmups"] + m["repetitions"] or m["repetitions"] < minimum:
         raise ValueError("Incomplete batch or insufficient timed repetitions")
-    samples, seen, signature, observations = [], set(), None, []
+    summary_signature = summary.get("signature")
+    if not isinstance(summary_signature, dict) or not isinstance(summary_signature.get("sam"), dict):
+        raise ValueError("Stored summary lacks an output signature")
+    legacy_signature_schema = "output_order" not in summary_signature["sam"]
+    samples, seen, signature, recorded_signature, observations = [], set(), None, None, []
     for i, row in enumerate(records):
         warmup = i < m["warmups"]
         if row["warmup"] is not warmup or row["exit_code"] != 0:
@@ -48,6 +52,12 @@ def inspect_batch(root, environment, minimum):
             signature = actual
         elif actual != signature:
             raise ValueError("Output mismatch inside a batch")
+        actual_recorded = (result_signature(run_dir, validate_sam_order=False)
+                           if legacy_signature_schema else actual)
+        if recorded_signature is None:
+            recorded_signature = actual_recorded
+        elif actual_recorded != recorded_signature:
+            raise ValueError("Output mismatch inside a batch under recorded signature schema")
         before, after = row["observation_before"], row["observation_after"]
         if after["observed_unix_ns"] < before["observed_unix_ns"]:
             raise ValueError("Observation clock moved backwards")
@@ -65,18 +75,18 @@ def inspect_batch(root, environment, minimum):
             observations.append({"system_counter_deltas": deltas,
                                  "observed_start_unix_ns": before["observed_unix_ns"],
                                  "observed_end_unix_ns": after["observed_unix_ns"]})
-    if samples != summary["samples_seconds"] or signature != summary["signature"]:
+    if samples != summary["samples_seconds"] or recorded_signature != summary_signature:
         raise ValueError("Stored summary disagrees with raw runs")
     return m, signature, {"samples_seconds": samples, "median_seconds": statistics.median(samples),
                           "min_seconds": min(samples), "max_seconds": max(samples),
                           "observations": observations}
 
 
-def compare(vm, snp, minimum=5):
+def compare(vm, snp, minimum=5, variant="upstream"):
     if minimum < 1:
         raise ValueError("minimum repetitions must be positive")
-    left, lsig, ldata = inspect_batch(vm, "vm", minimum)
-    right, rsig, rdata = inspect_batch(snp, "snp", minimum)
+    left, lsig, ldata = inspect_batch(vm, "vm", minimum, variant)
+    right, rsig, rdata = inspect_batch(snp, "snp", minimum, variant)
     for key in ("runner_sha256", "fingerprints", "threads", "warmups", "repetitions",
                 "cache_policy", "profiling", "variant"):
         if key not in left or left[key] != right.get(key):
@@ -104,9 +114,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("vm"); parser.add_argument("snp")
     parser.add_argument("--minimum-repetitions", type=int, default=5)
+    parser.add_argument("--variant", default="upstream")
     args = parser.parse_args()
     try:
-        print(json.dumps(compare(args.vm, args.snp, args.minimum_repetitions), indent=2))
+        print(json.dumps(compare(args.vm, args.snp, args.minimum_repetitions, args.variant), indent=2))
         return 0
     except (OSError, ValueError, KeyError, TypeError) as exc:
         print(str(exc), file=sys.stderr)

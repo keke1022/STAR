@@ -40,9 +40,44 @@ def multiset_digest(rows):
         return {"count": count, "sha256": sha256(dst)}
 
 
-def sam_digest(path):
+def sam_output_order(run_dir):
+    command_path = Path(run_dir) / "command.json"
+    if not command_path.exists():
+        return "Paired"  # STAR 2.7.11b default; also the conservative test-fixture default.
+    command = json.loads(command_path.read_text())
+    order = "Paired"
+    for i, value in enumerate(command):
+        if value == "--outSAMorder":
+            if i + 1 >= len(command):
+                raise ValueError("Missing value for --outSAMorder")
+            order = command[i + 1]
+        elif value.startswith("--outSAMorder="):
+            order = value.split("=", 1)[1]
+    if order not in {"Paired", "PairedKeepInputOrder", "Standard"}:
+        raise ValueError("Unsupported outSAMorder for validation: " + order)
+    return order
+
+
+def sam_digest(path, output_order="Paired"):
     headers = []
-    def records():
+    def validate_adjacent_mates(rows):
+        fields = [row.split("\t") for row in rows]
+        flags = [int(row[1]) for row in fields]
+        if not any(flag & 0x1 for flag in flags):
+            return
+        if not all(flag & 0x1 for flag in flags) or len(rows) % 2:
+            raise ValueError("Paired SAM QNAME group lacks complete adjacent mate units")
+        for i in range(0, len(rows), 2):
+            left, right = fields[i], fields[i + 1]
+            lf, rf = flags[i], flags[i + 1]
+            if bool(lf & 0x40) == bool(rf & 0x40) or bool(lf & 0x80) == bool(rf & 0x80):
+                raise ValueError("Paired SAM mate records are not adjacent")
+            left_hi = next((tag for tag in left[11:] if tag.startswith("HI:i:")), None)
+            right_hi = next((tag for tag in right[11:] if tag.startswith("HI:i:")), None)
+            if left_hi != right_hi:
+                raise ValueError("Adjacent SAM mates have different HI tags")
+
+    def normalized_records():
         with Path(path).open() as f:
             for line in f:
                 fields = line.rstrip("\n").split("\t")
@@ -59,12 +94,66 @@ def sam_digest(path):
                     raise ValueError("Malformed SAM alignment")
                 int(fields[1]); int(fields[3]); int(fields[4])
                 yield "\t".join(fields[:11] + sorted(fields[11:]))
-    result = multiset_digest(records())
+    if output_order == "Standard":
+        result = multiset_digest(normalized_records())
+    else:
+        # Paired modes require every QNAME's records to remain one contiguous
+        # group. Canonicalize records inside each group, but do not let a
+        # content-only multiset hide split mates or split multimappers.
+        with tempfile.TemporaryDirectory(prefix="star-paired-compare-") as tmp:
+            tmp = Path(tmp)
+            names_path, groups_path = tmp / "group-names", tmp / "groups"
+            record_count = group_count = 0
+            current_name, current_rows = None, []
+            ordered_hash = hashlib.sha256()
+            with names_path.open("w") as names, groups_path.open("w") as groups:
+                def flush_group():
+                    nonlocal group_count
+                    if current_name is None:
+                        return
+                    validate_adjacent_mates(current_rows)
+                    name_hash = hashlib.sha256(current_name.encode()).hexdigest()
+                    canonical_rows = (current_rows if output_order == "PairedKeepInputOrder"
+                                      else sorted(current_rows))
+                    group_hash = hashlib.sha256(("\n".join(canonical_rows) + "\n").encode()).hexdigest()
+                    row = name_hash + "\t" + group_hash + "\n"
+                    names.write(name_hash + "\n")
+                    groups.write(row)
+                    ordered_hash.update(row.encode())
+                    group_count += 1
+                for row in normalized_records():
+                    record_count += 1
+                    name = row.split("\t", 1)[0]
+                    if current_name is None:
+                        current_name = name
+                    elif name != current_name:
+                        flush_group()
+                        current_name, current_rows = name, []
+                    current_rows.append(row)
+                flush_group()
+            sorted_names = tmp / "group-names.sorted"
+            subprocess.run(["sort", "-T", str(tmp), "-o", str(sorted_names), str(names_path)],
+                           env={**os.environ, "LC_ALL": "C"}, check=True)
+            previous = None
+            with sorted_names.open() as names:
+                for name_hash in names:
+                    if name_hash == previous:
+                        raise ValueError("SAM records for one QNAME are not contiguous")
+                    previous = name_hash
+            if output_order == "Paired":
+                sorted_groups = tmp / "groups.sorted"
+                subprocess.run(["sort", "-T", str(tmp), "-o", str(sorted_groups), str(groups_path)],
+                               env={**os.environ, "LC_ALL": "C"}, check=True)
+                digest = sha256(sorted_groups)
+            else:
+                digest = ordered_hash.hexdigest()
+            result = {"count": record_count, "groups": group_count, "sha256": digest,
+                      "output_order": output_order}
     result["headers"] = sorted(headers)
     return result
 
 
-def result_signature(run_dir):
+def result_signature(run_dir, validate_sam_order=True):
     root = Path(run_dir)
     sam = root / "Aligned.out.sam"
     log = root / "Log.final.out"
@@ -79,7 +168,8 @@ def result_signature(run_dir):
                 stats[k] = v
     if int(stats.get("Number of input reads", "0")) <= 0:
         raise ValueError("Missing or empty input-read count")
-    result = {"sam": sam_digest(sam), "stats": stats}
+    output_order = sam_output_order(root) if validate_sam_order else "Standard"
+    result = {"sam": sam_digest(sam, output_order), "stats": stats}
     if result["sam"]["count"] == 0:
         raise ValueError("Empty alignment output despite nonempty input and Within mode")
     for name in ("SJ.out.tab", "ReadsPerGene.out.tab"):

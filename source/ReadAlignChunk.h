@@ -36,6 +36,12 @@ public:
     int iThread; //current thread
     uint chunkOutBAMtotal; //total number of bytes in the write buffer
 
+    bool traceEnabled;
+    uint64 traceChunkCount;
+    double traceInputSeconds;
+    double traceMapSeconds;
+    double traceSamWriteSeconds;
+
     ReadAlignChunk(Parameters& Pin, Genome &genomeIn, Transcriptome *TrIn, int iChunk);
     void processChunks();
     void mapChunk();
