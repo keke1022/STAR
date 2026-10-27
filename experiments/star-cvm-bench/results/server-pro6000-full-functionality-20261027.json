@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "scope": "Full DRR129224, declared default SAM/Old_2.4 parameter domain, four threads; functionality only",
+  "timing_valid": false,
+  "timing_note": "Host runs overlapped deliberately and must not be used for VM/SNP performance claims",
+  "input": {
+    "accession": "DRR129224",
+    "base_count": 5659497630,
+    "paired_reads": 28017315,
+    "read_1": {
+      "bytes": 1159015160,
+      "ena_md5": "51019bfc8b71a1779a7bbedc92dc32d6",
+      "sha256": "4c809b33bb1055e0ffdb92919cda8b714dc4319280d8b7078f5fdac709f918ad"
+    },
+    "read_2": {
+      "bytes": 1171726710,
+      "ena_md5": "222a3a4850a673aa09193528bdaad205",
+      "sha256": "b570332155de17e5991632c70635741076caae189ee17b1f6d63ed974cda61ad"
+    }
+  },
+  "runner_sha256": "96241a2499cf83779e92a837af6803ea068be3f752a153ad32b4d7e01d3e5cbb",
+  "binaries": {
+    "upstream_and_balanced_io_sha256": "61227ee7797cdcbf52afc6856d17b5659173ef5ba66687f7b4f0a014db7bb1ff",
+    "znver5_lto_balanced_io_sha256": "c24f8afc5ee6f629e3424237078f8fa248b01a7c20c189228befd59175a3f97c"
+  },
+  "common_output": {
+    "qname_groups": 28017315,
+    "sam_records": 61816046,
+    "sam_paired_sha256": "fab636b16c811c741bbd72b287115cab07b69911e1c75ca1f6829f343d615fec",
+    "signature_json_sha256": "2a048a231ad0f4cb0890c9457a76bd75076d105585d4085d880209e090472864",
+    "sj_out_tab_rows": 70034,
+    "sj_out_tab_sha256": "97397700e7706681eaecb30a3650cbe71a9683ea5960b91c306ca9accb781e4e"
+  },
+  "comparisons": {
+    "balanced_io_to_znver5_lto_balanced_io": "PASS",
+    "upstream_to_balanced_io": "PASS"
+  },
+  "excluded": {
+    "outMultimapperOrder_Random": "Known counterexample: chunk/thread assignment can change primary alignments",
+    "superseded_upstream_runner_sha256": "603a80c360466545926fbe227dfb86019da3bd4d8724bbac134cd61ff02eccc7"
+  }
+}

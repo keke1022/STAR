@@ -1,7 +1,8 @@
 # server-pro6000 STAR hotspot and optimization result
 
-Status: fixed-workload result complete; larger-corpus functionality validation
-in progress. The CPU-tuned build remains an experimental candidate.
+Status: fixed-workload result and full-corpus functionality validation complete.
+The CPU-tuned build remains an experimental candidate outside the declared
+parameter and input domain.
 
 ## What was slow
 
@@ -64,9 +65,34 @@ additional mate-position check, reached the same result.
 This is not a universal equivalence proof. An independent counterexample showed
 that `outMultimapperOrder=Random` can change primary alignments when chunk/thread
 assignment changes; that mode is excluded. Other output modes remain unvalidated.
-The `znver5`/LTO binary is therefore an experimental candidate until the full
-DRR129224 corpus and the declared parameter domain pass the same raw-output
-differential gate. The upstream binary remains the fallback.
+The upstream binary remains the fallback for unvalidated inputs and modes.
+
+### Full-corpus follow-up
+
+The complete ENA DRR129224 input (28,017,315 paired reads; 5,659,497,630 bases)
+was then run once through all three variants with four threads. These host runs
+were deliberately concurrent to shorten wall-clock time, so their timings are
+invalid and are not used in the VM/SNP performance result.
+
+All three final runs used checker/runner SHA-256
+`96241a2499cf83779e92a837af6803ea068be3f752a153ad32b4d7e01d3e5cbb`.
+Each produced 61,816,046 SAM records in 28,017,315 contiguous QNAME groups.
+The three stored `signature.json` files are byte-identical, SHA-256
+`2a048a231ad0f4cb0890c9457a76bd75076d105585d4085d880209e090472864`;
+their Paired SAM digest is
+`fab636b16c811c741bbd72b287115cab07b69911e1c75ca1f6829f343d615fec`
+and the 70,034-row `SJ.out.tab` digest is
+`97397700e7706681eaecb30a3650cbe71a9683ea5960b91c306ca9accb781e4e`.
+`compare_variants.py` independently re-read the raw outputs and passed both
+declared transitions: upstream to 4 MB input buffering, and 4 MB buffering to
+the CPU/LTO binary.
+
+An earlier upstream attempt used an immediately prior checker refactor and was
+excluded when the metadata gate detected a different runner hash, even though
+its output signature matched. The upstream run was repeated with the final
+runner rather than editing its manifest. This full-corpus result materially
+widens the tested input, but still does not prove all STAR modes, malformed
+inputs, failures, schedules or future compilers equivalent.
 
 ## Reproducibility and environment
 
