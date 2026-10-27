@@ -1,11 +1,6 @@
 #include "SuffixArrayFuns.h"
 #include "PackedArray.h"
-
-inline uint medianUint2(uint a, uint b)
-{
-    // returns (a+b)/2
-    return a/2 + b/2 + (a%2 + b%2)/2;
-};
+#include "medianUint2.h"
 
 uint compareSeqToGenome(Genome &mapGen, char** s2, uint S, uint N, uint L, uint iSA, bool dirR, bool& compRes)
 {
