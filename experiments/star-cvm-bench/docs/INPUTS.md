@@ -5,7 +5,7 @@ alignment-phase profile is NOT representative of a full-genome run.
 
 ## STAR
 - Upstream: https://github.com/alexdobin/STAR, release tag `2.7.11b`, commit `b1edc1208d91a53bf40ebae8669f71d50b994851` (2024-01-25).
-- Build: `../scripts/build_star.sh WORKDIR` (upstream Makefile defaults: `-O3 -std=c++11 -fopenmp -mavx2`, bundled htslib).
+- Build: `../scripts/build_star.sh WORKDIR` (upstream Makefile defaults: `-O3 -std=c++11 -fopenmp` for STAR C++ sources, bundled htslib). `CXXFLAGS_SIMD` (default `-mavx2`) applies only to `opal/opal.cpp`; passing `-march=...` through it does not change the alignment code. Use `CXXFLAGSextra` for global C++ additions and `LDFLAGSextra` for extra link flags (for LTO, pass `-flto` to both).
 - Reference build (this host): g++ 15.2.0 (Ubuntu 15.2.0-4ubuntu4), kernel 6.17; binary sha256
   `33ed677c8571676db92d8e51bc29a1bfa630148a387491a690062c61e8143b14`. The binary embeds the build
   time and path, so a rebuild elsewhere has a different hash; record each build hash. For VM/CVM timing, copy the same binary to both guests;
