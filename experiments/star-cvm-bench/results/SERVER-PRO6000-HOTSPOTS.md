@@ -87,6 +87,16 @@ and the 70,034-row `SJ.out.tab` digest is
 declared transitions: upstream to 4 MB input buffering, and 4 MB buffering to
 the CPU/LTO binary.
 
+An independent reviewer then copied both complete FASTQs and all three raw
+SAMs, recomputed every alignment and mate relationship, and checked commands,
+input/index fingerprints, splice junctions and non-timing statistics without
+trusting the cached PASS state. The independent result also passed with no
+remaining blocker. Its report SHA-256 is
+`39c959b614b35976dc3a70f4679d45fee04c27ca617108bce5e2102ae5539692`;
+the compact audit-only archive SHA-256 is
+`50a0dadffc079ba9631cfee68d232d7266b89f964cc8111aa01e14d806b0ccae`.
+The large FASTQ/SAM evidence remains off-repository.
+
 An earlier upstream attempt used an immediately prior checker refactor and was
 excluded when the metadata gate detected a different runner hash, even though
 its output signature matched. The upstream run was repeated with the final

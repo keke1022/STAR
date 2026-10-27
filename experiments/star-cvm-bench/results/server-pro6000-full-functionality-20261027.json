@@ -35,6 +35,11 @@
     "balanced_io_to_znver5_lto_balanced_io": "PASS",
     "upstream_to_balanced_io": "PASS"
   },
+  "independent_review": {
+    "audit_archive_sha256": "50a0dadffc079ba9631cfee68d232d7266b89f964cc8111aa01e14d806b0ccae",
+    "report_sha256": "39c959b614b35976dc3a70f4679d45fee04c27ca617108bce5e2102ae5539692",
+    "status": "PASS"
+  },
   "excluded": {
     "outMultimapperOrder_Random": "Known counterexample: chunk/thread assignment can change primary alignments",
     "superseded_upstream_runner_sha256": "603a80c360466545926fbe227dfb86019da3bd4d8724bbac134cd61ff02eccc7"
